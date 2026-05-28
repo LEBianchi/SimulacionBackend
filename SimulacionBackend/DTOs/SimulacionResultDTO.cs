@@ -8,5 +8,12 @@
         public double KilosPlasticoRecuperado { get; set; }
         public double KilosMetalRecuperado { get; set; }
         public double TiempoPromedioEspera { get; set; }
+
+        public double EficienciaTriage { get; set; }
+        public double EficienciaDesmantelamiento { get; set; }
+        public double EficienciaReacondicionamiento { get; set; }
+        public int EquiposEnColaTriage { get; set; }
+        public int EquiposEnColaDesmantelamiento { get; set; }
+        public int EquiposEnColaReacondicionamiento { get; set; }
     }
 }

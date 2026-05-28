@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using SimulacionBackend.Data;
 using SimulacionBackend.DTOs;
 using SimulacionBackend.Services;

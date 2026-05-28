@@ -29,7 +29,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    // Y ACÁ LE DECIMOS QUE MUESTRE LA PÁGINA WEB
+    
     app.UseSwagger();
     app.UseSwaggerUI();
 }
