@@ -1,23 +1,41 @@
+using Microsoft.EntityFrameworkCore;
+using SimulacionBackend.Data;
+using SimulacionBackend.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=simulaciones.db"));
+
+builder.Services.AddScoped<ISimulacionService, SimulacionService>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PermitirFrontend", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Y ACÁ LE DECIMOS QUE MUESTRE LA PÁGINA WEB
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-
+app.UseCors("PermitirFrontend");
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
