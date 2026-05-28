@@ -28,12 +28,12 @@ namespace SimulacionBackend.Services
             // Variables de colas (Backlog)
             int cola_triage = 0, cola_mineria = 0, cola_reacond = 0;
 
-            // Capacidad máxima en MINUTOS por jornada
+            
             double maxMinutosTriage = parametros.HorasJornada * 60.0 * parametros.EmpleadosTriage;
             double maxMinutosMineria = parametros.HorasJornada * 60.0 * parametros.EmpleadosDesmantelamiento;
             double maxMinutosReacond = parametros.HorasJornada * 60.0 * parametros.EmpleadosReaciclaje;
 
-            // Generamos los lotes que llegan en TODO EL DÍA
+            
             int lotesDelDia = dist.Poisson(4);
 
             for (int j = 1; j <= lotesDelDia; j++)
@@ -46,30 +46,30 @@ namespace SimulacionBackend.Services
                 {
                     double u_tipo = congruencial.obtenerSiguiente();
 
-                    // Pesos realistas: Celulares (Media 200g, Desv 20g) | Tablets (Media 600g, Desv 50g)
+                    
                     double peso_actual = u_tipo <= 0.7 ? dist.Normal(0.200, 0.02) : dist.Normal(0.600, 0.05);
 
-                    // Freno de seguridad por si la estadística escupe un negativo rarísimo
+                    
                     if (peso_actual <= 0) peso_actual = 0.05;
 
                     peso_acumulado += peso_actual;
 
-                    // --- 1. INTENTAR TRIAGE ---
+                    
                     double t_triage = dist.Uniforme(15, 20);
                     if (TUT + t_triage > maxMinutosTriage)
                     {
                         cola_triage++;
-                        continue; // El empleado no da abasto, el equipo queda en la caja
+                        continue; 
                     }
 
                     TUT += t_triage;
                     if (u_tipo <= 0.7) contador_celulares++; else contador_tablets++;
 
-                    // --- 2. RUTEO A MINERÍA O REACONDICIONAMIENTO ---
+                    
                     double u_destino = congruencial.obtenerSiguiente();
                     if (u_destino <= 0.1)
                     {
-                        /* Eliminación Directa */
+                        
                     }
                     else if (u_destino <= 0.25)
                     {
@@ -84,17 +84,17 @@ namespace SimulacionBackend.Services
                 }
             }
 
-            // Cálculos finales
+           
             double tiempoTotalHoras = (TUT + temp_min + temp_borrado + temp_arreglo) / 60.0;
 
             double eficTriage = maxMinutosTriage > 0 ? (TUT / maxMinutosTriage) * 100 : 0;
             double eficMineria = maxMinutosMineria > 0 ? (temp_min / maxMinutosMineria) * 100 : 0;
             double eficReacond = maxMinutosReacond > 0 ? ((temp_borrado + temp_arreglo) / maxMinutosReacond) * 100 : 0;
 
-            // Armamos el registro para la Base de Datos
+            
             var registro = new SimulacionRecord
             {
-                // Ingresados reales (Los que procesó + los que quedaron juntando polvo)
+                
                 TotalEquiposIngresados = contador_celulares + contador_tablets + cola_triage,
                 EquiposReacondicionados = cant_rec,
                 EquiposDesmantelados = cant_min,
@@ -109,11 +109,11 @@ namespace SimulacionBackend.Services
                 EquiposEnColaReacondicionamiento = cola_reacond
             };
 
-            // Guardamos en SQLite
+            
             _context.Simulaciones.Add(registro);
             _context.SaveChanges();
 
-            // Devolvemos el JSON al Frontend
+            
             return new SimulacionResultDTO
             {
                 TotalEquiposIngresados = registro.TotalEquiposIngresados,
@@ -131,15 +131,13 @@ namespace SimulacionBackend.Services
             };
         }
 
-        // =========================================================================
-        // MÉTODOS AUXILIARES
-        // =========================================================================
+       
 
         private bool IntentarMineria(Distribuciones dist, double peso_actual, double maxMinutos, ref int cant_min, ref double temp_min, ref double total_metales, ref double total_plastico)
         {
             double t_min = dist.Uniforme(25, 40);
 
-            // Si el tiempo del área ya no da más, no procesamos este equipo
+           
             if (temp_min + t_min > maxMinutos) return false;
 
             cant_min++;
@@ -154,7 +152,7 @@ namespace SimulacionBackend.Services
             double t_borrado = dist.Uniforme(30, 45);
             double t_arreglo = congruencial.obtenerSiguiente() <= 0.65 ? dist.Exponencial(90) : dist.Exponencial(180);
 
-            // Verificamos si hay tiempo físico para hacer todo el proceso
+           
             if (temp_borrado + temp_arreglo + t_borrado + t_arreglo > maxMinutos) return false;
 
             cant_rec++;

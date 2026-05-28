@@ -12,7 +12,7 @@ namespace SimulacionBackend.Controllers
         private readonly ISimulacionService _simulacionService;
         private readonly AppDbContext _context;
 
-        // El constructor recibe el servicio que inyectamos en el Program.cs
+       
         public SimulacionController(ISimulacionService simulacionService, AppDbContext context)
         {
             _simulacionService = simulacionService;
