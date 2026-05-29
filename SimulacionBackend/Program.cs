@@ -34,6 +34,21 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>(); // Fijate que el nombre coincida con tu DbContext
+        context.Database.EnsureCreated(); // Esto fabrica el archivo SQLite y las tablas de cero
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error creando la BD: {ex.Message}");
+    }
+}
+
+
 app.UseHttpsRedirection();
 app.UseCors("PermitirFrontend");
 app.UseAuthorization();
