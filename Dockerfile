@@ -5,8 +5,8 @@ WORKDIR /src
 # Copiamos absolutamente todo el repositorio al contenedor
 COPY . .
 
-# Magia de .NET: busca automáticamente el .sln o .csproj en las carpetas y lo publica
-RUN dotnet publish -c Release -o /app/publish
+# LE APUNTAMOS DIRECTO AL PROYECTO (Ignoramos la solución)
+RUN dotnet publish SimulacionBackend/SimulacionBackend.csproj -c Release -o /app/publish
 
 # 2. Usamos el entorno liviano para correr la API
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
