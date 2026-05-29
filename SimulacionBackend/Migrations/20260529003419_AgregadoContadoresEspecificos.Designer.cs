@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SimulacionBackend.Data;
 
@@ -10,9 +11,11 @@ using SimulacionBackend.Data;
 namespace SimulacionBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260529003419_AgregadoContadoresEspecificos")]
+    partial class AgregadoContadoresEspecificos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.8");
@@ -58,9 +61,6 @@ namespace SimulacionBackend.Migrations
 
                     b.Property<DateTime>("FechaEjecucion")
                         .HasColumnType("TEXT");
-
-                    b.Property<double>("KilosBasuraFisicaTotal")
-                        .HasColumnType("REAL");
 
                     b.Property<double>("KilosMetalRecuperado")
                         .HasColumnType("REAL");

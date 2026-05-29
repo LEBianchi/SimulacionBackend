@@ -2,6 +2,7 @@
 {
     public class SimulacionResultDTO
     {
+        public double KilosBasuraFisicaTotal { get; set; }
         public int TotalEquiposIngresados { get; set; }
         public int EquiposReacondicionados { get; set; }
         public int EquiposDesmantelados { get; set; }
@@ -15,5 +16,16 @@
         public int EquiposEnColaTriage { get; set; }
         public int EquiposEnColaDesmantelamiento { get; set; }
         public int EquiposEnColaReacondicionamiento { get; set; }
+
+        public int CelularesIngresados { get; set; }
+        public int TabletsIngresadas { get; set; }
+
+        public int CelularesDesmantelados { get; set; }
+        public int TabletsDesmanteladas { get; set; }
+
+        public int CelularesReacondicionados { get; set; }
+        public int TabletsReacondicionadas { get; set; }
+
+
     }
 }
