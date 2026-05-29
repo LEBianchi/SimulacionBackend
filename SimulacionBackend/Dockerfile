@@ -1,20 +1,21 @@
-# 1. Usamos el SDK de .NET para compilar el código en el servidor
+# 1. Usamos el SDK de .NET
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-# CAMBIAR "TuProyecto" POR EL NOMBRE DE TU ARCHIVO .csproj
-COPY ["SimulacionBackend.csproj", "./"]
-RUN dotnet restore "SimulacionBackend.csproj"
-COPY . .
-RUN dotnet publish "SimulacionBackend.csproj" -c Release -o /app/publish
 
-# 2. Usamos una versión súper liviana para correr la API
+# Copiamos absolutamente todo el repositorio al contenedor
+COPY . .
+
+# Magia de .NET: busca automáticamente el .sln o .csproj en las carpetas y lo publica
+RUN dotnet publish -c Release -o /app/publish
+
+# 2. Usamos el entorno liviano para correr la API
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Le avisamos a Render que escuche por el puerto 8080 (obligatorio en Render)
+# Puerto para Render
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
-# CAMBIAR "TuProyecto.dll" POR EL NOMBRE DE TU PROYECTO
+# Arrancamos la API
 ENTRYPOINT ["dotnet", "SimulacionBackend.dll"]
