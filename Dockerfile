@@ -1,5 +1,5 @@
-# 1. Usamos el SDK de .NET
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# 1. Usamos el SDK de .NET 10
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copiamos absolutamente todo el repositorio al contenedor
@@ -8,8 +8,8 @@ COPY . .
 # LE APUNTAMOS DIRECTO AL PROYECTO (Ignoramos la solución)
 RUN dotnet publish SimulacionBackend/SimulacionBackend.csproj -c Release -o /app/publish
 
-# 2. Usamos el entorno liviano para correr la API
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+# 2. Usamos el entorno liviano de .NET 10 para correr la API
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
