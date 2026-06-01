@@ -37,7 +37,7 @@ namespace SimulacionBackend.Services
             int cola_triage = 0, cola_mineria = 0, cola_reacond = 0;
             double tiempo_espera_total_minutos = 0; // Acumulador de espera real (Wq)
 
-            // Relojes de disponibilidad de operarios (cuándo se desocupa cada área)
+            // Relojes de disponibilidad de operarios
             double reloj_triage = 0;
             double reloj_mineria = 0;
             double reloj_reacond = 0;
@@ -73,8 +73,6 @@ namespace SimulacionBackend.Services
 
                     peso_acumulado += peso_actual;
 
-                    // --- LÓGICA ESTOCÁSTICA DE EVENTOS DISCRETOS ---
-
                     // 1. TRIAGE
                     double t_triage = dist.Uniforme(15, 20);
 
@@ -84,7 +82,13 @@ namespace SimulacionBackend.Services
                     if (inicio_triage + t_triage > maxMinutosTriage)
                     {
                         cola_triage++;
-                        tiempo_espera_total_minutos += (maxMinutosTriage - tiempo_llegada_acumulado);
+
+                        // CORRECCIÓN: Evitamos que reste tiempo si llega fuera de hora
+                        double espera_restante = maxMinutosTriage - tiempo_llegada_acumulado;
+                        if (espera_restante > 0)
+                        {
+                            tiempo_espera_total_minutos += espera_restante;
+                        }
                         continue;
                     }
 
@@ -113,7 +117,10 @@ namespace SimulacionBackend.Services
                         if (inicio_reacond + t_total_reacond > maxMinutosReacond)
                         {
                             cola_reacond++;
-                            tiempo_espera_total_minutos += (maxMinutosReacond - tiempo_salida_triage);
+
+                            // CORRECCIÓN
+                            double espera_restante = maxMinutosReacond - tiempo_salida_triage;
+                            if (espera_restante > 0) tiempo_espera_total_minutos += espera_restante;
                         }
                         else
                         {
@@ -136,7 +143,10 @@ namespace SimulacionBackend.Services
                         if (inicio_mineria + t_min > maxMinutosMineria)
                         {
                             cola_mineria++;
-                            tiempo_espera_total_minutos += (maxMinutosMineria - tiempo_salida_triage);
+
+                            // CORRECCIÓN
+                            double espera_restante = maxMinutosMineria - tiempo_salida_triage;
+                            if (espera_restante > 0) tiempo_espera_total_minutos += espera_restante;
                         }
                         else
                         {
