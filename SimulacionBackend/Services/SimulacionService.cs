@@ -2,6 +2,7 @@
 using SimulacionBackend.Generadores;
 using SimulacionBackend.Data;
 using System;
+using System.Linq;
 
 namespace SimulacionBackend.Services
 {
@@ -37,14 +38,13 @@ namespace SimulacionBackend.Services
             int cola_triage = 0, cola_mineria = 0, cola_reacond = 0;
             double tiempo_espera_total_minutos = 0; // Acumulador de espera real (Wq)
 
-            // Relojes de disponibilidad de operarios
-            double reloj_triage = 0;
-            double reloj_mineria = 0;
-            double reloj_reacond = 0;
+            // CORRECCIÓN: Relojes individuales por operario para simular canales en paralelo (M/M/c)
+            double[] relojes_triage = new double[parametros.EmpleadosTriage];
+            double[] relojes_mineria = new double[parametros.EmpleadosDesmantelamiento];
+            double[] relojes_reacond = new double[parametros.EmpleadosReaciclaje];
 
-            double maxMinutosTriage = parametros.HorasJornada * 60.0 * parametros.EmpleadosTriage;
-            double maxMinutosMineria = parametros.HorasJornada * 60.0 * parametros.EmpleadosDesmantelamiento;
-            double maxMinutosReacond = parametros.HorasJornada * 60.0 * parametros.EmpleadosReaciclaje;
+            // El límite de tiempo real de la jornada (ej: 8 horas = 480 minutos)
+            double finJornadaMinutos = parametros.HorasJornada * 60.0;
 
             int lotesDelDia = dist.Poisson(4);
             double tiempo_llegada_acumulado = 0;
@@ -76,15 +76,18 @@ namespace SimulacionBackend.Services
                     // 1. TRIAGE
                     double t_triage = dist.Uniforme(15, 20);
 
-                    double inicio_triage = Math.Max(tiempo_llegada_acumulado, reloj_triage);
+                    // CORRECCIÓN PARALELO: Buscamos al operario de Triage que se libere primero
+                    int indiceOperarioTriage = ObtenerOperarioMasLibre(relojes_triage);
+                    double reloj_operario_triage = relojes_triage[indiceOperarioTriage];
+
+                    double inicio_triage = Math.Max(tiempo_llegada_acumulado, reloj_operario_triage);
                     double espera_triage = inicio_triage - tiempo_llegada_acumulado;
 
-                    if (inicio_triage + t_triage > maxMinutosTriage)
+                    // Si el operario libre termina después del fin de jornada, se va a cola
+                    if (inicio_triage + t_triage > finJornadaMinutos)
                     {
                         cola_triage++;
-
-                        // CORRECCIÓN: Evitamos que reste tiempo si llega fuera de hora
-                        double espera_restante = maxMinutosTriage - tiempo_llegada_acumulado;
+                        double espera_restante = finJornadaMinutos - tiempo_llegada_acumulado;
                         if (espera_restante > 0)
                         {
                             tiempo_espera_total_minutos += espera_restante;
@@ -93,12 +96,12 @@ namespace SimulacionBackend.Services
                     }
 
                     tiempo_espera_total_minutos += espera_triage;
-                    reloj_triage = inicio_triage + t_triage;
+                    relojes_triage[indiceOperarioTriage] = inicio_triage + t_triage;
                     TUT += t_triage;
 
                     // 2. DESTINO
                     double u_destino = congruencial.obtenerSiguiente();
-                    double tiempo_salida_triage = reloj_triage;
+                    double tiempo_salida_triage = relojes_triage[indiceOperarioTriage];
 
                     if (u_destino <= 0.1)
                     {
@@ -111,21 +114,23 @@ namespace SimulacionBackend.Services
                         double t_arreglo = congruencial.obtenerSiguiente() <= 0.65 ? dist.Exponencial(90) : dist.Exponencial(180);
                         double t_total_reacond = t_borrado + t_arreglo;
 
-                        double inicio_reacond = Math.Max(tiempo_salida_triage, reloj_reacond);
+                        // CORRECCIÓN PARALELO: Buscamos operario libre en Reacondicionamiento
+                        int indiceOpReacond = ObtenerOperarioMasLibre(relojes_reacond);
+                        double reloj_operario_reacond = relojes_reacond[indiceOpReacond];
+
+                        double inicio_reacond = Math.Max(tiempo_salida_triage, reloj_operario_reacond);
                         double espera_reacond = inicio_reacond - tiempo_salida_triage;
 
-                        if (inicio_reacond + t_total_reacond > maxMinutosReacond)
+                        if (inicio_reacond + t_total_reacond > finJornadaMinutos)
                         {
                             cola_reacond++;
-
-                            // CORRECCIÓN
-                            double espera_restante = maxMinutosReacond - tiempo_salida_triage;
+                            double espera_restante = finJornadaMinutos - tiempo_salida_triage;
                             if (espera_restante > 0) tiempo_espera_total_minutos += espera_restante;
                         }
                         else
                         {
                             tiempo_espera_total_minutos += espera_reacond;
-                            reloj_reacond = inicio_reacond + t_total_reacond;
+                            relojes_reacond[indiceOpReacond] = inicio_reacond + t_total_reacond;
                             cant_rec++;
                             temp_borrado += t_borrado;
                             temp_arreglo += t_arreglo;
@@ -137,21 +142,23 @@ namespace SimulacionBackend.Services
                         // MINERÍA (Desmantelamiento)
                         double t_min = dist.Uniforme(25, 40);
 
-                        double inicio_mineria = Math.Max(tiempo_salida_triage, reloj_mineria);
+                        // CORRECCIÓN PARALELO: Buscamos operario libre en Minería
+                        int indiceOpMineria = ObtenerOperarioMasLibre(relojes_mineria);
+                        double reloj_operario_mineria = relojes_mineria[indiceOpMineria];
+
+                        double inicio_mineria = Math.Max(tiempo_salida_triage, reloj_operario_mineria);
                         double espera_mineria = inicio_mineria - tiempo_salida_triage;
 
-                        if (inicio_mineria + t_min > maxMinutosMineria)
+                        if (inicio_mineria + t_min > finJornadaMinutos)
                         {
                             cola_mineria++;
-
-                            // CORRECCIÓN
-                            double espera_restante = maxMinutosMineria - tiempo_salida_triage;
+                            double espera_restante = finJornadaMinutos - tiempo_salida_triage;
                             if (espera_restante > 0) tiempo_espera_total_minutos += espera_restante;
                         }
                         else
                         {
                             tiempo_espera_total_minutos += espera_mineria;
-                            reloj_mineria = inicio_mineria + t_min;
+                            relojes_mineria[indiceOpMineria] = inicio_mineria + t_min;
                             cant_min++;
                             temp_min += t_min;
                             total_metales += (peso_actual * 0.35);
@@ -162,22 +169,33 @@ namespace SimulacionBackend.Services
                 }
             }
 
-            // Transformamos el acumulador de minutos en horas promedio
-            double tiempoTotalHoras = tiempo_espera_total_minutos / 60.0;
+            // CORRECCIÓN PRINCIPAL: Calcular el promedio real dividiendo por la cantidad de equipos ingresados
+            int totalEquiposIngresados = contador_celulares + contador_tablets;
+            double tiempoPromedioHoras = 0;
 
-            // Cálculos de eficiencia
-            double eficTriage = maxMinutosTriage > 0 ? (TUT / maxMinutosTriage) * 100 : 0;
-            double eficMineria = maxMinutosMineria > 0 ? (temp_min / maxMinutosMineria) * 100 : 0;
-            double eficReacond = maxMinutosReacond > 0 ? ((temp_borrado + temp_arreglo) / maxMinutosReacond) * 100 : 0;
+            if (totalEquiposIngresados > 0)
+            {
+                // (Minutos totales / 60) nos da las horas totales, y lo dividimos por la cantidad de equipos
+                tiempoPromedioHoras = (tiempo_espera_total_minutos / 60.0) / totalEquiposIngresados;
+            }
+
+            // Cálculos de eficiencias individuales basadas en el tiempo total que laburaron los operarios sobre su capacidad instalada
+            double totalMinutosDisponiblesTriage = finJornadaMinutos * parametros.EmpleadosTriage;
+            double totalMinutosDisponiblesMineria = finJornadaMinutos * parametros.EmpleadosDesmantelamiento;
+            double totalMinutosDisponiblesReacond = finJornadaMinutos * parametros.EmpleadosReaciclaje;
+
+            double eficTriage = totalMinutosDisponiblesTriage > 0 ? (TUT / totalMinutosDisponiblesTriage) * 100 : 0;
+            double eficMineria = totalMinutosDisponiblesMineria > 0 ? (temp_min / totalMinutosDisponiblesMineria) * 100 : 0;
+            double eficReacond = totalMinutosDisponiblesReacond > 0 ? ((temp_borrado + temp_arreglo) / totalMinutosDisponiblesReacond) * 100 : 0;
 
             var registro = new SimulacionRecord
             {
-                TotalEquiposIngresados = contador_celulares + contador_tablets,
+                TotalEquiposIngresados = totalEquiposIngresados,
                 EquiposReacondicionados = cant_rec,
                 EquiposDesmantelados = cant_min,
                 KilosMetalRecuperado = Math.Round(total_metales, 2),
                 KilosPlasticoRecuperado = Math.Round(total_plastico, 2),
-                TiempoPromedioEspera = Math.Round(tiempoTotalHoras, 2),
+                TiempoPromedioEspera = Math.Round(tiempoPromedioHoras, 2), // <-- Guardamos el promedio real corregido
                 EficienciaTriage = Math.Round(eficTriage, 2),
                 EficienciaDesmantelamiento = Math.Round(eficMineria, 2),
                 EficienciaReacondicionamiento = Math.Round(eficReacond, 2),
@@ -218,6 +236,22 @@ namespace SimulacionBackend.Services
                 CelularesReacondicionados = registro.CelularesReacondicionados,
                 TabletsReacondicionadas = registro.TabletsReacondicionadas
             };
+        }
+
+        // Función auxiliar para simular canales en paralelo. Devuelve el índice del operario más rápido en liberarse.
+        private int ObtenerOperarioMasLibre(double[] relojes)
+        {
+            int indiceMin = 0;
+            double valorMin = relojes[0];
+            for (int i = 1; i < relojes.Length; i++)
+            {
+                if (relojes[i] < valorMin)
+                {
+                    valorMin = relojes[i];
+                    indiceMin = i;
+                }
+            }
+            return indiceMin;
         }
     }
 }
