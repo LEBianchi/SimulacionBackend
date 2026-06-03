@@ -4,7 +4,7 @@
     {
         private readonly CongruencialMixto _generador;
 
-        public Distribuciones(CongruencialMixto generador) // recuerdenme que borre los comentarios puteandolos ;)
+        public Distribuciones(CongruencialMixto generador) 
         {
             _generador = generador;
         }

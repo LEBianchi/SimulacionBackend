@@ -1,6 +1,6 @@
 ﻿namespace SimulacionBackend.Generadores
 {
-    public class CongruencialMixto //lo pase a principio de clases si no lo entienden son uns cajetas
+    public class CongruencialMixto 
     {
         private long _xn;
         private readonly long _a;

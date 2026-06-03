@@ -3,6 +3,7 @@ using SimulacionBackend.Generadores;
 using SimulacionBackend.Data;
 using System;
 using System.Linq;
+using System.Collections.Generic; 
 
 namespace SimulacionBackend.Services
 {
@@ -20,6 +21,19 @@ namespace SimulacionBackend.Services
             long semilla = DateTime.Now.Ticks % int.MaxValue;
             var congruencial = new CongruencialMixto(semilla, 1664525, 1013904223, (long)Math.Pow(2, 32));
             var dist = new Distribuciones(congruencial);
+
+            // --- VALIDACIÓN DEL GENERADOR  ---
+            var numerosPrueba = new List<double>();
+            for (int i = 0; i < 10000; i++)
+            {
+                numerosPrueba.Add(congruencial.obtenerSiguiente());
+            }
+
+            Console.WriteLine("=== INICIANDO VALIDACIÓN DEL GENERADOR LEHMER ===");
+            PruebasEstadisticas.PruebaPromedios(numerosPrueba);
+            PruebasEstadisticas.PruebaFrecuencia(numerosPrueba);
+            Console.WriteLine("=================================================");
+            // --------------------------------------------------------------
 
             int contador_tablets = 0, contador_celulares = 0;
             int cant_min = 0, cant_rec = 0;
@@ -70,15 +84,14 @@ namespace SimulacionBackend.Services
                     double inicio_triage = Math.Max(tiempo_llegada_acumulado, reloj_operario_triage);
                     double espera_triage = inicio_triage - tiempo_llegada_acumulado;
 
-                    // ✅ CORRECCIÓN CLAVE: Acumulamos la espera y avanzamos el reloj SIEMPRE, 
-                    // formando la cola real antes de evaluar si se cortó el horario.
+                   
                     tiempo_espera_total_minutos += espera_triage;
                     relojes_triage[indiceOperarioTriage] = inicio_triage + t_triage;
 
                     if (inicio_triage + t_triage > finJornadaMinutos)
                     {
                         cola_triage++;
-                        continue; // Si desborda, no suma eficiencia y no pasa a los siguientes sectores
+                        continue; 
                     }
                     TUT += t_triage;
 
@@ -88,7 +101,7 @@ namespace SimulacionBackend.Services
 
                     if (u_destino <= 0.1)
                     {
-                        // Rechazo directo
+                        // descarte
                     }
                     else if (u_destino <= 0.25)
                     {
@@ -103,7 +116,6 @@ namespace SimulacionBackend.Services
                         double inicio_reacond = Math.Max(tiempo_salida_triage, reloj_operario_reacond);
                         double espera_reacond = inicio_reacond - tiempo_salida_triage;
 
-                        // ✅ CORRECCIÓN CLAVE Reacondicionamiento
                         tiempo_espera_total_minutos += espera_reacond;
                         relojes_reacond[indiceOpReacond] = inicio_reacond + t_total_reacond;
 
@@ -130,7 +142,6 @@ namespace SimulacionBackend.Services
                         double inicio_mineria = Math.Max(tiempo_salida_triage, reloj_operario_mineria);
                         double espera_mineria = inicio_mineria - tiempo_salida_triage;
 
-                        // ✅ CORRECCIÓN CLAVE Minería
                         tiempo_espera_total_minutos += espera_mineria;
                         relojes_mineria[indiceOpMineria] = inicio_mineria + t_min;
 
@@ -150,7 +161,7 @@ namespace SimulacionBackend.Services
                 }
             }
 
-            // Cálculo final de promedios y eficiencias
+           
             int totalEquiposIngresados = contador_celulares + contador_tablets;
             double tiempoPromedioHoras = 0;
 
